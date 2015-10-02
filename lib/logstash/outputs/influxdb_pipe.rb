@@ -131,29 +131,31 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
     event_collection = []
 
     events.each do |event|
-      begin
-        if seen_series.has_key?(event['name']) and (seen_series[event['name']] == event['columns']) && !event['name'].nil?
-          @logger.info("Existing series data found. Appending points to that series")
+      unless event['name'] == ""
+        begin
+          if seen_series.has_key?(event['name']) and (seen_series[event['name']] == event['columns'])
+            @logger.info("Existing series data found. Appending points to that series")
 
-          event_collection.select do |h|
-            h['points'] << event['points'][0] if h['name'] == event['name']
+            event_collection.select do |h|
+              h['points'] << event['points'][0] if h['name'] == event['name']
+            end
+          elsif event['name'].nil?
+            @logger.warn("Series name is missing. Skipping event. Data: #{event.to_json}")
+          elsif seen_series.has_key?(event['name']) and (seen_series[event['name']] != event['columns'])
+            @logger.warn("Series '#{event['name']}' has been seen but columns are different or in a different order. Adding to batch but not under existing series")
+            @logger.warn("Existing series columns were: #{seen_series[event['name']].join(",")} and event columns were: #{event['columns'].join(",")}")
+
+            event_collection << event
+          else
+            seen_series[event['name']] = event['columns']
+
+            event_collection << event
           end
-        elsif event['name'].nil?
-          @logger.warn("Series name is missing. Skipping event. Data: #{event.to_json}")
-        elsif seen_series.has_key?(event['name']) and (seen_series[event['name']] != event['columns'])
-          @logger.warn("Series '#{event['name']}' has been seen but columns are different or in a different order. Adding to batch but not under existing series")
-          @logger.warn("Existing series columns were: #{seen_series[event['name']].join(",")} and event columns were: #{event['columns'].join(",")}")
+        rescue => exception
+          @logger.info("Error adding event to collection", exception: exception)
 
-          event_collection << event
-        else
-          seen_series[event['name']] = event['columns']
-
-          event_collection << event
+          next
         end
-      rescue => exception
-        @logger.info("Error adding event to collection", exception: exception)
-
-        next
       end
     end
 
