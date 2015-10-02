@@ -132,12 +132,14 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
 
     events.each do |event|
       begin
-        if seen_series.has_key?(event['name']) and (seen_series[event['name']] == event['columns'])
+        if seen_series.has_key?(event['name']) and (seen_series[event['name']] == event['columns']) && !event['name'].nil?
           @logger.info("Existing series data found. Appending points to that series")
 
           event_collection.select do |h|
             h['points'] << event['points'][0] if h['name'] == event['name']
           end
+        elsif event['name'].nil?
+          @logger.warn("Series name is missing. Skipping event. Data: #{event.to_json}")
         elsif seen_series.has_key?(event['name']) and (seen_series[event['name']] != event['columns'])
           @logger.warn("Series '#{event['name']}' has been seen but columns are different or in a different order. Adding to batch but not under existing series")
           @logger.warn("Existing series columns were: #{seen_series[event['name']].join(",")} and event columns were: #{event['columns'].join(",")}")
@@ -160,7 +162,7 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
 
   def post(body)
     begin
-      @logger.debug("Post body: #{body}")
+      @logger.info("Post body: #{body}")
 
       response = @agent.post!(@url, body: body)
     rescue EOFError
