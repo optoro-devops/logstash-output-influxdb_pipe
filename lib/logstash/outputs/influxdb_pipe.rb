@@ -106,6 +106,8 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
 
     influxdb_point = event[event.sprintf(@point_field)]
 
+    return if influxdb_point.nil?
+
     influxdb_point['time'] ||= event.timestamp.to_i
 
     event_hash = {
