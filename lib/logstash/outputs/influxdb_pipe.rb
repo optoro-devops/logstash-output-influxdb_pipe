@@ -103,20 +103,26 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
     #     ]
     #   }
     # ]
-
     influxdb_point = event[event.sprintf(@point_field)]
 
-    return if influxdb_point.nil?
+    series_name = event['series'] || event.sprintf(@series)
 
-    influxdb_point['time'] ||= event.timestamp.to_i
+    if influxdb_point.respond_to?(:[])
+                        influxdb_point['time'] ||= event.timestamp.to_i
 
-    event_hash = {
-      'name'    => event['series'] || event.sprintf(@series),
-      'columns' => influxdb_point.keys,
-      'points'  => [influxdb_point.values.to_a]
-    }
+                        buffer_receive({
+                                'name'    => series_name,
+                                'columns' => influxdb_point.keys,
+                                'points'  => [influxdb_point.values.to_a]
+                        })
+    elsif series_name.start_with?('sidekiq')
+      buffer_receive({
+        'name'    => series_name,
+        'columns' => ['time', 'runtime'],
+        'points'  => [[event.timestamp.to_i, influxdb_point]]
+      })
+    end
 
-    buffer_receive(event_hash)
   end # def receive
 
   def flush(events, teardown=false)
@@ -133,6 +139,7 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
     event_collection = []
 
     events.each do |event|
+      event['points'][0][0] = event['points'][0][0].to_f
       unless event['name'] == ""
         begin
           if seen_series.has_key?(event['name']) and (seen_series[event['name']] == event['columns'])

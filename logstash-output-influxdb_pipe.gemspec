@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'logstash-output-influxdb_pipe'
-  s.version         = "0.0.7"
+  s.version         = "0.0.8"
   s.licenses = ["Apache License (2.0)"]
   s.summary = "This example output does nothing."
   s.description = "This gem is a logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/plugin install gemname. This gem is not a stand-alone program"
@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # Files
-  s.files = `git ls-files`.split($\)
+  s.files = Dir['lib/**/*','spec/**/*','vendor/**/*','*.gemspec','*.md','CONTRIBUTORS','Gemfile','LICENSE','NOTICE.TXT']
    # Tests
   s.test_files = s.files.grep(%r{^(test|spec|features)/})
 
@@ -19,6 +19,6 @@ Gem::Specification.new do |s|
 
   # Gem dependencies
   s.add_runtime_dependency "logstash-core", ">= 1.4.0", "< 2.0.0"
-  s.add_runtime_dependency "logstash-codec-plain"
+  s.add_runtime_dependency 'ftw', ['~> 0.0.40']
   s.add_development_dependency "logstash-devutils"
 end
