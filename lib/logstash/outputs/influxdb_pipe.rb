@@ -139,9 +139,9 @@ class LogStash::Outputs::InfluxDBPipe < LogStash::Outputs::Base
     event_collection = []
 
     events.each do |event|
-      event['points'][0][0] = event['points'][0][0].to_f
-      unless event['name'] == ""
+      unless event['name'] == "" && !event['points'][0].kind_of?(Array)
         begin
+          event['points'][0][0] = event['points'][0][0].to_f
           if seen_series.has_key?(event['name']) and (seen_series[event['name']] == event['columns'])
             @logger.info("Existing series data found. Appending points to that series")
 
